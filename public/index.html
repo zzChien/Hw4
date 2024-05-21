@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MIKASA V200W</title>
+  <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+
+<body>
+<h1>歷年 MIKASA V200W 價格查詢</h1>
+<h3>歡迎選取日期查詢價格</h3>
+
+<form>
+  <label for="dateSelect">日 期 :</label>
+  <select id="dateSelect">
+    <!-- Options will be populated dynamically -->
+  </select>
+  <button type="button" onclick="queryPrice()">查 詢</button>
+  <p id="priceResult"></p>
+  <p id="maxPriceResult"></p>
+  <p id="minPriceResult"></p>
+  <p id="avgPriceResult"></p>
+</form>
+
+<script>
+  // Function to fetch dates from backend and populate the select element
+  function populateDates() {
+    fetch('/api/dates')
+            .then(response => response.json())
+            .then(data => {
+              // Clear previous options
+              document.getElementById("dateSelect").innerHTML = "";
+
+              // Populate select element with dates
+              data.dates.forEach(date => {
+                var option = document.createElement("option");
+                option.text = date;
+                document.getElementById("dateSelect").add(option);
+              });
+            })
+            .catch(error => console.error('Error:', error));
+  }
+
+  // Call populateDates function when the page loads
+  window.onload = populateDates;
+
+  function queryPrice() {
+    // Get the selected date from the select element
+    var selectedDate = document.getElementById("dateSelect").value;
+
+    // Send the selected date to the backend
+    fetch('/api?date=' + selectedDate, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+    })
+            .then(response => response.json())
+            .then(data => {
+              // Find the price for the selected date
+              if (data.length > 0) {
+                const priceData = data[0]; // Assuming there's only one price entry per date
+                // Display the price result with bold font
+                document.getElementById("priceResult").innerHTML = "<b>" + " 價格 : </b> " + priceData.price + " 元 (NTD) "  + selectedDate;
+              } else {
+                // Handle case where no price data is found
+                document.getElementById("priceResult").innerText = "No price available for " + selectedDate;
+              }
+
+              // Fetch all prices to calculate max, min and average
+              fetch('/api/overview', {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+              })
+                      .then(response => response.json())
+                      .then(allData => {
+                        if (allData.length > 0) {
+                          // Find the latest max price
+                          const maxPriceData = allData.reduce((max, item) => item.price > max.price ? item : max, allData[0]);
+                          document.getElementById("maxPriceResult").innerHTML = "<b>歷史最高 : </b> <span style='color:red; font-weight:bold;'>" + maxPriceData.price + " 元 (NTD)</span> " + maxPriceData.date;
+
+                          // Find the latest min price
+                          const minPriceData = allData.reduce((min, item) => item.price < min.price ? item : min, allData[0]);
+                          document.getElementById("minPriceResult").innerHTML = "<b>歷史最低 : </b> <span style='color:green; font-weight:bold;'>" + minPriceData.price + " 元 (NTD)</span> " + minPriceData.date;
+
+                          // Calculate the average price
+                          const totalPrices = allData.reduce((total, item) => total + item.price, 0);
+                          const avgPrice = (totalPrices / allData.length).toFixed(2);
+                          document.getElementById("avgPriceResult").innerHTML = "<b>平均價格 : </b> <span style='color:blue; font-weight:bold;'>" + avgPrice + " 元 (NTD)</span>";
+                        }
+                      })
+                      .catch(error => console.error('Error:', error));
+            })
+            .catch(error => console.error('Error:', error));
+  }
+</script>
+</body>
+
+</html>

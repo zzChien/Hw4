@@ -3,26 +3,84 @@
 
 <head>
   <meta charset="UTF-8">
+  <meta name="description" content="Put your description here.">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MIKASA V200W</title>
+  <title>MIKASA Price Search</title>
   <link rel="stylesheet" href="/stylesheets/style.css">
+  <style>
+    body {
+      background-color: #D9D9D9;
+    }
+
+    .insert {
+      display: flex;
+      flex-direction: column;
+      width: 30%;
+      height: 40%;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(255, 255, 255, 0.5);
+      position: fixed;
+      top: 50%;
+      left: 20%;
+      transform: translate(-50%, -50%);
+
+      line-height: 1;
+    }
+
+    .search {
+      display: flex;
+      flex-direction: column;
+      width: 30%;
+      height: 40%;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(255, 255, 255, 0.5);
+      position: fixed;
+      top: 50%;
+      right: 10%;
+      transform: translate(-50%, -50%);
+
+      line-height: 1;
+    }
+
+    #insertResult {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+
 </head>
 
 <body>
-<h1>歷年 MIKASA V200W 價格查詢</h1>
-<h3>歡迎選取日期查詢價格</h3>
+<h1>MIKASA V200W Price Search</h1>
+<p>Welcome to select a date to check the price</p>
 
-<form>
-  <label for="dateSelect">日 期 :</label>
+
+<div id="insertForm" class="insert">
+  <label for="date">Date : </label>
+  <input type="date" id="date" name="date" required>
+  <br><br>
+  <label for="price">Price : </label>
+  <input type="number" id="price" name="price" required>
+  <br><br>
+  <button type="button" onclick="insertData()">Submit</button>
+  <p id="insertResult"></p>
+</div>
+
+<div class="search">
+  <label for="dateSelect" >Date :</label>
   <select id="dateSelect">
     <!-- Options will be populated dynamically -->
   </select>
-  <button type="button" onclick="queryPrice()">查 詢</button>
+  <button type="button" onclick="queryPrice()">Search</button>
   <p id="priceResult"></p>
   <p id="maxPriceResult"></p>
   <p id="minPriceResult"></p>
   <p id="avgPriceResult"></p>
-</form>
+</div>
 
 <script>
   // Function to fetch dates from backend and populate the select element
@@ -33,8 +91,13 @@
               // Clear previous options
               document.getElementById("dateSelect").innerHTML = "";
 
-              // Populate select element with dates
-              data.dates.forEach(date => {
+              // Filter dates for the last year
+              const oneYearAgo = new Date();
+              oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+              const filteredDates = data.dates.filter(date => new Date(date) >= oneYearAgo);
+
+              // Populate select element with filtered dates
+              filteredDates.forEach(date => {
                 var option = document.createElement("option");
                 option.text = date;
                 document.getElementById("dateSelect").add(option);
@@ -63,7 +126,7 @@
               if (data.length > 0) {
                 const priceData = data[0]; // Assuming there's only one price entry per date
                 // Display the price result with bold font
-                document.getElementById("priceResult").innerHTML = "<b>" + " 價格 : </b> " + priceData.price + " 元 (NTD) "  + selectedDate;
+                document.getElementById("priceResult").innerHTML = "<b> Price : </b> " + priceData.price + " 元 (NTD) " + selectedDate;
               } else {
                 // Handle case where no price data is found
                 document.getElementById("priceResult").innerText = "No price available for " + selectedDate;
@@ -81,22 +144,74 @@
                         if (allData.length > 0) {
                           // Find the latest max price
                           const maxPriceData = allData.reduce((max, item) => item.price > max.price ? item : max, allData[0]);
-                          document.getElementById("maxPriceResult").innerHTML = "<b>歷史最高 : </b> <span style='color:red; font-weight:bold;'>" + maxPriceData.price + " 元 (NTD)</span> " + maxPriceData.date;
+                          document.getElementById("maxPriceResult").innerHTML = "<b>Max Price : </b> <span style='color:red; font-weight:bold;'>" + maxPriceData.price + " (NTD)</span> " + maxPriceData.date;
 
                           // Find the latest min price
                           const minPriceData = allData.reduce((min, item) => item.price < min.price ? item : min, allData[0]);
-                          document.getElementById("minPriceResult").innerHTML = "<b>歷史最低 : </b> <span style='color:green; font-weight:bold;'>" + minPriceData.price + " 元 (NTD)</span> " + minPriceData.date;
+                          document.getElementById("minPriceResult").innerHTML = "<b>Min Price : </b> <span style='color:green; font-weight:bold;'>" + minPriceData.price + " (NTD)</span> " + minPriceData.date;
 
                           // Calculate the average price
                           const totalPrices = allData.reduce((total, item) => total + item.price, 0);
                           const avgPrice = (totalPrices / allData.length).toFixed(2);
-                          document.getElementById("avgPriceResult").innerHTML = "<b>平均價格 : </b> <span style='color:blue; font-weight:bold;'>" + avgPrice + " 元 (NTD)</span>";
+                          document.getElementById("avgPriceResult").innerHTML = "<b>Average Price : </b> <span style='color:blue; font-weight:bold;'>" + avgPrice + " (NTD)</span>";
                         }
                       })
                       .catch(error => console.error('Error:', error));
             })
             .catch(error => console.error('Error:', error));
   }
+
+  function insertData() {
+    // Get the date and price from the input fields
+    var date = document.getElementById("date").value;
+    var price = document.getElementById("price").value;
+
+    // Send the date and price to the backend
+    fetch('/api/insert?date=' + date + '&price=' + price, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+    })
+            .then(response => response.text())
+            .then(data => {
+              // Display the result of the insert operation
+              document.getElementById("insertResult").innerText = data;
+              // Refresh the date options after inserting new data
+              populateDates();
+            })
+            .catch(error => console.error('Error:', error));
+  }
+
+  // function insertData() {
+  //   // Get the date and price from the input fields
+  //   var date = document.getElementById("date").value;
+  //   var price = document.getElementById("price").value;
+  //
+  //   // Send the date and price to the backend
+  //   fetch('/api/insert?date=' + date + '&price=' + price, {
+  //     method: 'GET',
+  //     headers: {
+  //       'Content-Type': 'application/json'
+  //     },
+  //   })
+  //           .then(response => response.text())
+  //           .then(data => {
+  //             // Display the result of the insert operation
+  //             var insertResult = document.getElementById("insertResult");
+  //             insertResult.innerText = data;
+  //             // Check if insertion was successful and apply style
+  //             if (data === 'Data inserted successfully') {
+  //               insertResult.classList.add('success');
+  //             } else {
+  //               insertResult.classList.remove('success');
+  //             }
+  //             // Refresh the date options after inserting new data
+  //             populateDates();
+  //           })
+  //           .catch(error => console.error('Error:', error));
+  // }
+
 </script>
 </body>
 

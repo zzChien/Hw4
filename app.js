@@ -1,3 +1,5 @@
+// app.js
+
 var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
@@ -18,20 +20,20 @@ app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
 const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('db/sqlite.db',(err) => {
-    if(err){
+const db = new sqlite3.Database('db/sqlite.db', (err) => {
+    if (err) {
         console.error(err.message);
     } else {
         console.log('Connected to the database.');
     }
 });
 
- db.run('CREATE TABLE IF NOT EXISTS Volleyball_Price (date date NOT NULL, price INT NOT NULL)');
+db.run('CREATE TABLE IF NOT EXISTS Volleyball_Price (date DATE NOT NULL, price INT NOT NULL, PRIMARY KEY(date))');
 
-app.get('/api/overview',(req,res,) => {
-    db.all('SELECT * FROM Volleyball_Price',(err ,rows) => {
-        if(err) {
-            res.status(100).json({error: err.message});
+app.get('/api/overview', (req, res) => {
+    db.all('SELECT * FROM Volleyball_Price ORDER BY date DESC LIMIT 10', (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
             return;
         }
         res.json(rows);
@@ -44,7 +46,7 @@ app.get('/api', (req, res) => {
     db.all(sql, [date_value], (err, rows) => {
         if (err) {
             console.error(err.message);
-            res.status(200).send('Internal Server Error');
+            res.status(500).send('Internal Server Error');
             return;
         }
         res.send(rows);
@@ -54,17 +56,17 @@ app.get('/api', (req, res) => {
 app.get('/api/insert', (req, res) => {
     let price = req.query.price;
     let date = req.query.date;
-    let sql = 'INSERT INTO Volleyball_Price (price, date) VALUES (?, ?)';
-    db.run(sql, [price, date], (err) => {
+    let sql = 'INSERT OR REPLACE INTO Volleyball_Price (date, price) VALUES (?, ?)';
+    db.run(sql, [date, price], (err) => {
         if (err) {
             console.error(err.message);
-            res.status(400).send('Internal Server Error');
+            res.status(500).send('Internal Server Error');
             return;
         }
+        res.send('Data inserted successfully');
     });
 });
 
-// 新增一個路由，用於獲取資料庫中的日期數據
 app.get('/api/dates', (req, res) => {
     db.all('SELECT DISTINCT date FROM Volleyball_Price', (err, rows) => {
         if (err) {
